@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="ENG">
+<head>
+    <title>ESP IOT DASHBOARD</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <link rel="stylesheet" type="text/css" href="style.css">
+    <script src="libs/nipplejs.min.js"></script>
+    <script type="module" src="index.js"></script>
+<!--    <script type="module" src="components/Joystick.js"></script>-->
+    <script type="module" src="components/Range.js"></script>
+</head>
+<body>
+<div style="padding: 10px; background: #333; color: white; text-align: center;">
+    <button id="ble-connect-btn">Connect via Bluetooth</button>
+    <span id="status-text">Using WiFi</span>
+</div>
+<div class="content">
+    <div class="card-grid">
+        <div class="joystick-card" id="joystick-zone-1">
+
+        </div>
+        <div class="joystick-card" id="joystick-zone-2">
+
+        </div>
+    </div>
+
+</div>
+
+<!--    <div class="content">-->
+<!--        <div class="card-grid">-->
+<!--            <inp-range id="inp-speed-range-1" angle="-90" value="0"></inp-range>-->
+<!--            <inp-range id="inp-speed-range-2" angle="0" value="0"></inp-range>-->
+<!--            <inp-range id="inp-speed-range-3" angle="0" value="0"></inp-range>-->
+<!--            <inp-range id="inp-speed-range-4" angle="0" value="0"></inp-range>-->
+<!--        </div>-->
+<!--    </div>-->
+</body>
+</html>
