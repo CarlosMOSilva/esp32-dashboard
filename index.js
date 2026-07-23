@@ -16,7 +16,7 @@ function getESP32IP() {
 
 function connectWebSocket(ip) {
     if (websocket) websocket.close();
-    websocket = new WebSocket(`ws://${ip}/ws`);
+    websocket = new WebSocket(`wss://${ip}/ws`);
     websocket.onopen    = () => {
         document.getElementById('ws-status').innerText = `WiFi Connected (${ip})`;
         document.getElementById('ws-status').style.color = 'lightgreen';
