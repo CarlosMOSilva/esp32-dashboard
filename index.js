@@ -7,8 +7,29 @@ let batchTimeout = null;
 
 let useBLE = false;
 let bleCharacteristic = null;
-let websocket = new WebSocket(`ws://192.168.1.106/ws`);
+let websocket = null;
 let bleBusy = false; // Add this global flag
+
+function getESP32IP() {
+    return localStorage.getItem('esp32ip') || '192.168.1.106';
+}
+
+function connectWebSocket(ip) {
+    if (websocket) websocket.close();
+    websocket = new WebSocket(`ws://${ip}/ws`);
+    websocket.onopen    = () => {
+        document.getElementById('ws-status').innerText = `WiFi Connected (${ip})`;
+        document.getElementById('ws-status').style.color = 'lightgreen';
+    };
+    websocket.onclose   = () => {
+        document.getElementById('ws-status').innerText = 'WiFi Disconnected';
+        document.getElementById('ws-status').style.color = 'red';
+    };
+    websocket.onerror   = () => {
+        document.getElementById('ws-status').innerText = 'WiFi Error';
+        document.getElementById('ws-status').style.color = 'orange';
+    };
+}
 
 async function sendCommand(motorId, value) {
 
@@ -68,6 +89,16 @@ window.onload = () => {
             alert("Could not connect to Bluetooth. Make sure the ESP32 is in BLE mode.");
         }
     });
+
+    document.getElementById('esp32-ip').value = getESP32IP();
+
+    document.getElementById('wifi-connect-btn').addEventListener('click', () => {
+        const ip = document.getElementById('esp32-ip').value.trim();
+        localStorage.setItem('esp32ip', ip);
+        connectWebSocket(ip);
+    });
+
+    connectWebSocket(getESP32IP());
 
     websocket.onmessage = event => {
         const message = JSON.parse(event.data);

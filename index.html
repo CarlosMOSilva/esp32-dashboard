@@ -10,9 +10,13 @@
     <script type="module" src="components/Range.js"></script>
 </head>
 <body>
-<div style="padding: 10px; background: #333; color: white; text-align: center;">
-    <button id="ble-connect-btn">Connect via Bluetooth</button>
-    <span id="status-text">Using WiFi</span>
+<div style="padding: 10px; background: #333; color: white; text-align: center; display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap;">
+    <label for="esp32-ip"></label><input id="esp32-ip" type="text" placeholder="192.168.1.106"
+                                         style="padding: 6px; border-radius: 4px; border: none; width: 140px;"
+                                         value="">
+    <button id="wifi-connect-btn">Connect WiFi</button>
+    <button id="ble-connect-btn">Connect BLE</button>
+    <span id="ws-status" style="color: orange;">Not connected</span>
 </div>
 <div class="content">
     <div class="card-grid">
