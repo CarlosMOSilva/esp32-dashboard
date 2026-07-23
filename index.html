@@ -6,37 +6,27 @@
     <link rel="stylesheet" type="text/css" href="style.css">
     <script src="libs/nipplejs.min.js"></script>
     <script type="module" src="index.js"></script>
-<!--    <script type="module" src="components/Joystick.js"></script>-->
     <script type="module" src="components/Range.js"></script>
 </head>
 <body>
-<div style="padding: 10px; background: #333; color: white; text-align: center; display: flex; gap: 8px; justify-content: center; align-items: center; flex-wrap: wrap;">
-    <label for="esp32-ip"></label><input id="esp32-ip" type="text" placeholder="192.168.1.106"
-                                         style="padding: 6px; border-radius: 4px; border: none; width: 140px;"
-                                         value="">
-    <button id="wifi-connect-btn">Connect WiFi</button>
-    <button id="ble-connect-btn">Connect BLE</button>
-    <span id="status-text" style="color: orange;">Not connected</span>
+<div class="topbar">
+    <input id="esp32-ip" class="ip-input" type="text" placeholder="192.168.1.106">
+    <button id="wifi-connect-btn" class="conn-btn">Connect</button>
+    <div class="toggle-wrap">
+        <span class="toggle-label-wifi">WiFi</span>
+        <label class="toggle">
+            <input type="checkbox" id="mode-toggle">
+            <span class="toggle-slider"></span>
+        </label>
+        <span class="toggle-label-ble">BLE</span>
+    </div>
+    <span id="status-text" class="status-text">Not connected</span>
 </div>
 <div class="content">
     <div class="card-grid">
-        <div class="joystick-card" id="joystick-zone-1">
-
-        </div>
-        <div class="joystick-card" id="joystick-zone-2">
-
-        </div>
+        <div class="joystick-card" id="joystick-zone-1"></div>
+        <div class="joystick-card" id="joystick-zone-2"></div>
     </div>
-
 </div>
-
-<!--    <div class="content">-->
-<!--        <div class="card-grid">-->
-<!--            <inp-range id="inp-speed-range-1" angle="-90" value="0"></inp-range>-->
-<!--            <inp-range id="inp-speed-range-2" angle="0" value="0"></inp-range>-->
-<!--            <inp-range id="inp-speed-range-3" angle="0" value="0"></inp-range>-->
-<!--            <inp-range id="inp-speed-range-4" angle="0" value="0"></inp-range>-->
-<!--        </div>-->
-<!--    </div>-->
 </body>
 </html>

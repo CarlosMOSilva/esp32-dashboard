@@ -16,18 +16,24 @@ function getESP32IP() {
 
 function connectWebSocket(ip) {
     if (websocket) websocket.close();
-    websocket = new WebSocket(`wss://${ip}/ws`);
+    websocket = new WebSocket(`ws://${ip}/ws`);
     websocket.onopen    = () => {
-        document.getElementById('ws-status').innerText = `WiFi Connected (${ip})`;
-        document.getElementById('ws-status').style.color = 'lightgreen';
+        if (!useBLE) {
+            document.getElementById('status-text').innerText = `WiFi Connected (${ip})`;
+            document.getElementById('status-text').style.color = 'lightgreen';
+        }
     };
     websocket.onclose   = () => {
-        document.getElementById('ws-status').innerText = 'WiFi Disconnected';
-        document.getElementById('ws-status').style.color = 'red';
+        if (!useBLE) {
+            document.getElementById('status-text').innerText = 'WiFi Disconnected';
+            document.getElementById('status-text').style.color = 'red';
+        }
     };
     websocket.onerror   = () => {
-        document.getElementById('ws-status').innerText = 'WiFi Error';
-        document.getElementById('ws-status').style.color = 'orange';
+        if (!useBLE) {
+            document.getElementById('status-text').innerText = 'WiFi Error';
+            document.getElementById('status-text').style.color = 'orange';
+        }
     };
 }
 
@@ -64,38 +70,74 @@ async function sendCommand(motorId, value) {
 window.onload = () => {
 
     // --- BLE Setup ---
-    document.getElementById('ble-connect-btn').addEventListener('click', async () => {
-        try {
-            const device = await navigator.bluetooth.requestDevice({
-                filters: [{ name: 'ESP32_Robot' }],
-                optionalServices: ['4fafc201-1fb5-459e-8fcc-c5c9c331914b']
-            });
-
-            const server = await device.gatt.connect();
-            const service = await server.getPrimaryService('4fafc201-1fb5-459e-8fcc-c5c9c331914b');
-
-            // Match the UUID from C++
-            bleCharacteristic = await service.getCharacteristic('beb5483e-36e1-4688-b7f5-ea07361b26a8');
-
-            useBLE = true;
-            document.getElementById('status-text').innerText = "Connected via BLE";
-            document.getElementById('ble-connect-btn').style.display = 'none';
-
-            // Close WebSocket to save ESP32 resources
-            websocket.close();
-
-        } catch (error) {
-            console.error("BLE Connection failed", error);
-            alert("Could not connect to Bluetooth. Make sure the ESP32 is in BLE mode.");
-        }
-    });
+    // document.getElementById('ble-connect-btn').addEventListener('click', async () => {
+    //     try {
+    //         const device = await navigator.bluetooth.requestDevice({
+    //             filters: [{ name: 'ESP32_Robot' }],
+    //             optionalServices: ['4fafc201-1fb5-459e-8fcc-c5c9c331914b']
+    //         });
+    //
+    //         const server = await device.gatt.connect();
+    //         const service = await server.getPrimaryService('4fafc201-1fb5-459e-8fcc-c5c9c331914b');
+    //
+    //         // Match the UUID from C++
+    //         bleCharacteristic = await service.getCharacteristic('beb5483e-36e1-4688-b7f5-ea07361b26a8');
+    //
+    //         useBLE = true;
+    //         document.getElementById('status-text').innerText = "Connected via BLE";
+    //         document.getElementById('ble-connect-btn').style.display = 'none';
+    //
+    //         // Close WebSocket to save ESP32 resources
+    //         websocket.close();
+    //
+    //     } catch (error) {
+    //         console.error("BLE Connection failed", error);
+    //         alert("Could not connect to Bluetooth. Make sure the ESP32 is in BLE mode.");
+    //     }
+    // });
 
     document.getElementById('esp32-ip').value = getESP32IP();
 
-    document.getElementById('wifi-connect-btn').addEventListener('click', () => {
-        const ip = document.getElementById('esp32-ip').value.trim();
-        localStorage.setItem('esp32ip', ip);
-        connectWebSocket(ip);
+    // document.getElementById('wifi-connect-btn').addEventListener('click', () => {
+    //     const ip = document.getElementById('esp32-ip').value.trim();
+    //     localStorage.setItem('esp32ip', ip);
+    //     connectWebSocket(ip);
+    // });
+
+    document.getElementById('mode-toggle').addEventListener('change', async (e) => {
+        const statusText = document.getElementById('status-text');
+        if (e.target.checked) {
+            // Switch to BLE
+            if (!navigator.bluetooth) {
+                alert("Web Bluetooth not available. Requires HTTPS or localhost.");
+                e.target.checked = false;
+                return;
+            }
+            try {
+                const device = await navigator.bluetooth.requestDevice({
+                    filters: [{ name: 'ESP32_Robot' }],
+                    optionalServices: ['4fafc201-1fb5-459e-8fcc-c5c9c331914b']
+                });
+                const server  = await device.gatt.connect();
+                const service = await server.getPrimaryService('4fafc201-1fb5-459e-8fcc-c5c9c331914b');
+                bleCharacteristic = await service.getCharacteristic('beb5483e-36e1-4688-b7f5-ea07361b26a8');
+                useBLE = true;
+                statusText.innerText = 'BLE connected';
+                statusText.style.color = '#60a5fa';
+                if (websocket) websocket.close();
+            } catch (err) {
+                console.error('BLE failed', err);
+                statusText.innerText = 'BLE failed';
+                statusText.style.color = 'red';
+                e.target.checked = false;
+            }
+        } else {
+            // Switch to WiFi
+            useBLE = false;
+            bleCharacteristic = null;
+            const ip = document.getElementById('esp32-ip').value.trim();
+            connectWebSocket(ip);
+        }
     });
 
     connectWebSocket(getESP32IP());

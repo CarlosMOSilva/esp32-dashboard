@@ -88,3 +88,96 @@ button {
 .button-stop:hover {
     background-color: #9b332c;
 }
+
+.topbar {
+    padding: 10px 16px;
+    background: #222;
+    color: white;
+    display: flex;
+    gap: 12px;
+    justify-content: center;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.ip-input {
+    padding: 6px 10px;
+    border-radius: 4px;
+    border: 0.5px solid #555;
+    background: #333;
+    color: white;
+    width: 130px;
+    font-size: 14px;
+}
+
+.conn-btn {
+    padding: 7px 16px;
+    border-radius: 4px;
+    border: 0.5px solid #555;
+    background: #333;
+    color: white;
+    font-size: 13px;
+    cursor: pointer;
+    width: auto;
+}
+
+.conn-btn:hover {
+    background: #444;
+}
+
+.status-text {
+    font-size: 13px;
+    color: #f59e0b;
+}
+
+.toggle-wrap {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+}
+
+.toggle-label-wifi { color: #4ade80; }
+.toggle-label-ble  { color: #60a5fa; }
+
+.toggle {
+    position: relative;
+    width: 52px;
+    height: 26px;
+    display: inline-block;
+}
+
+.toggle input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.toggle-slider {
+    position: absolute;
+    inset: 0;
+    background: #4ade80;
+    border-radius: 13px;
+    transition: 0.3s;
+    cursor: pointer;
+}
+
+.toggle-slider:before {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 20px;
+    left: 3px;
+    bottom: 3px;
+    background: white;
+    border-radius: 50%;
+    transition: 0.3s;
+}
+
+.toggle input:checked + .toggle-slider {
+    background: #3b82f6;
+}
+
+.toggle input:checked + .toggle-slider:before {
+    transform: translateX(26px);
+}
