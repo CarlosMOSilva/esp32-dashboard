@@ -72,7 +72,7 @@ async function sendCommand(motorId, value) {
             } finally {
                 bleBusy = false; // Ready for the next command
             }
-        } else if (websocket.readyState === WebSocket.OPEN) {
+        } else if (!useBLE && websocket.readyState === WebSocket.OPEN) {
             websocket.send(payload);
         }
         batchTimeout = null;
