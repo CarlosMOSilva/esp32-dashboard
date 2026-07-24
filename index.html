@@ -11,8 +11,11 @@
 <body>
 <div class="topbar">
     <input id="esp32-ip" class="ip-input" type="text" placeholder="192.168.1.106">
-    <button id="wifi-connect-btn" class="conn-btn">Connect</button>
-    <div class="toggle-wrap">
+    <!-- Changed ID to main-connect-btn -->
+    <button id="main-connect-btn" class="conn-btn">Connect</button>
+
+    <!-- Added id="toggle-wrap" to this div -->
+    <div id="toggle-wrap" class="toggle-wrap">
         <span class="toggle-label-wifi">WiFi</span>
         <label class="toggle">
             <input type="checkbox" id="mode-toggle">
