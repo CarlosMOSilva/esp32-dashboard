@@ -1,205 +1,187 @@
-const throttleMap = {};  // one timeout per data ID
-const lastDataMap = {};  // one pending value per data ID
 const delay = 50;
-
 const motorState = { 1: 0, 2: 0, 3: 0, 4: 0 };
 let batchTimeout = null;
-
 let useBLE = false;
 let bleCharacteristic = null;
 let websocket = null;
-let bleBusy = false; // Add this global flag
+let bleBusy = false;
 
-function getESP32IP() {
-    return localStorage.getItem('esp32ip') || '192.168.1.106';
+// ⚠️ CHANGE THIS TO YOUR ACTUAL GITHUB PAGES URL
+const GITHUB_URL = "https://carlosmosilva.github.io/esp32-dashboard/";
+
+const BLE_SERVICE    = '4fafc201-1fb5-459e-8fcc-c5c9c331914b';
+const BLE_CHAR       = 'beb5483e-36e1-4688-b7f5-ea07361b26a8';
+const ESP32_IP       = () => document.getElementById('esp32-ip')?.value.trim()
+    || localStorage.getItem('esp32ip')
+    || '192.168.1.106';
+
+// ── Page switching ────────────────────────────────────────────
+function showPage(name) {
+    document.getElementById('page-ble').classList.toggle('hidden', name !== 'ble');
+    document.getElementById('page-wifi').classList.toggle('hidden', name !== 'wifi');
 }
 
+// ── WebSocket ─────────────────────────────────────────────────
 function connectWebSocket(ip) {
-    if (websocket) websocket.close();
-
-    try {
-        // The browser will block this on GitHub Pages, so we must "catch" the error
-        websocket = new WebSocket(`ws://${ip}/ws`);
-
-        websocket.onopen = () => {
-            if (!useBLE) {
-                document.getElementById('status-text').innerText = `WiFi Connected (${ip})`;
-                document.getElementById('status-text').style.color = 'lightgreen';
-            }
-        };
-        websocket.onclose = () => {
-            if (!useBLE) {
-                document.getElementById('status-text').innerText = 'WiFi Disconnected';
-                document.getElementById('status-text').style.color = 'red';
-            }
-        };
-        websocket.onerror = () => {
-            if (!useBLE) {
-                document.getElementById('status-text').innerText = 'WiFi Error';
-                document.getElementById('status-text').style.color = 'orange';
-            }
-        };
-    } catch (error) {
-        // This will silently catch the DOMException on HTTPS so the rest of the page (like BLE) still works
-        console.warn("WebSocket blocked by browser security. You must use BLE when on HTTPS.");
-        if (!useBLE) {
-            document.getElementById('status-text').innerText = 'WiFi Blocked (Use BLE)';
-            document.getElementById('status-text').style.color = 'orange';
-        }
+    if (websocket && (websocket.readyState === WebSocket.OPEN || websocket.readyState === WebSocket.CONNECTING)) {
+        return;
     }
+    if (websocket && websocket.readyState !== WebSocket.CLOSED) {
+        websocket.close();
+    }
+
+    websocket = new WebSocket(`ws://${ip}/ws`);
+    const status = document.getElementById('wifi-status');
+    status.innerText = 'Connecting...';
+    status.style.color = '#f59e0b';
+
+    websocket.onopen  = () => { status.innerText = `Connected (${ip})`; status.style.color = '#4ade80'; };
+    websocket.onclose = () => { status.innerText = 'Disconnected';       status.style.color = 'red'; };
+    websocket.onerror = () => { status.innerText = 'Error';              status.style.color = 'orange'; };
 }
 
+// ── Send command ──────────────────────────────────────────────
 async function sendCommand(motorId, value) {
-
     motorState[motorId] = value;
-
-    if (batchTimeout) return; // already scheduled
+    if (batchTimeout) return;
     batchTimeout = setTimeout(() => {
-        const payload = JSON.stringify({
-            t: "mb",  // mb = motor batch
-            motors: motorState
-        });
+        const payload = JSON.stringify({ t: "mb", motors: motorState });
         if (useBLE && bleCharacteristic) {
-            if (bleBusy) return; // Skip if we are already sending
-
+            if (bleBusy) { batchTimeout = null; return; }
             try {
                 bleBusy = true;
-                const encoder = new TextEncoder();
-                // Use writeValueWithoutResponse for faster, non-blocking writes if possible
-                bleCharacteristic.writeValueWithoutResponse(encoder.encode(payload));
-            } catch (error) {
-                console.error("BLE Send Error:", error);
-            } finally {
-                bleBusy = false; // Ready for the next command
-            }
-        } else if (!useBLE && websocket.readyState === WebSocket.OPEN) {
+                bleCharacteristic.writeValueWithoutResponse(new TextEncoder().encode(payload));
+            } catch(e) { console.error('BLE send error', e); }
+            finally { bleBusy = false; }
+        } else if (websocket?.readyState === WebSocket.OPEN) {
             websocket.send(payload);
         }
         batchTimeout = null;
     }, delay);
 }
 
-window.onload = () => {
-    const isSecure = window.location.protocol === 'https:';
+// ── Joystick factory ──────────────────────────────────────────
+function createJoysticks(m1, m2, m3, m4) {
+    const j1 = nipplejs.create({
+        zone: document.getElementById('joystick-zone-1'),
+        mode: 'static', color: 'black',
+        position: { left: '50%', top: '50%' },
+        size: 200, lockY: true, multitouch: true
+    });
+    j1.on('move', (e, d) => {
+        if (!d?.vector) return;
+        const v = Math.round(d.vector.y * Math.min(d.force, 1) * 255);
+        sendCommand(m1, v); sendCommand(m2, v);
+    });
+    j1.on('end', () => { sendCommand(m1, 0); sendCommand(m2, 0); });
 
-    const toggleWrap = document.getElementById('toggle-wrap');
-    const ipInput = document.getElementById('esp32-ip');
-    const connectBtn = document.getElementById('main-connect-btn');
-    const modeToggle = document.getElementById('mode-toggle');
-    const statusText = document.getElementById('status-text');
+    const j2 = nipplejs.create({
+        zone: document.getElementById('joystick-zone-2'),
+        mode: 'static', color: 'black',
+        position: { left: '50%', top: '50%' },
+        size: 200, lockX: true, multitouch: true
+    });
+    j2.on('move', (e, d) => {
+        if (!d?.vector) return;
+        const x = Math.round(d.vector.x * Math.min(d.force, 1) * 255);
+        const y = Math.round(d.vector.y * Math.min(d.force, 1) * 255);
+        sendCommand(m3, x); sendCommand(m4, y);
+    });
+    j2.on('end', () => { sendCommand(m3, 0); sendCommand(m4, 0); });
+}
 
-    ipInput.value = getESP32IP();
-
-    // --- 1. AUTO-SWITCH LOGIC ON LOAD ---
-    if (isSecure) {
-        // We are on GitHub Pages (HTTPS). Force BLE mode.
-        useBLE = true;
-        toggleWrap.style.display = 'none'; // Hide the switch
-        ipInput.style.display = 'none';    // Hide the IP input
-        connectBtn.innerText = "Connect Bluetooth";
-        statusText.innerText = "BLE Ready (Click Connect)";
-        statusText.style.color = '#60a5fa';
-    } else {
-        // We are on local HTTP. Allow WiFi and show UI.
-        useBLE = false;
-        connectWebSocket(getESP32IP());
+// ── BLE connect ───────────────────────────────────────────────
+async function connectBLE() {
+    const status = document.getElementById('ble-status');
+    if (!navigator.bluetooth) {
+        status.innerText = 'BLE not available (needs HTTPS)';
+        status.style.color = 'red';
+        return false;
     }
 
-    // --- 2. THE MAIN CONNECT BUTTON LOGIC ---
-    connectBtn.addEventListener('click', async () => {
-        if (useBLE) {
-            // Connect to Bluetooth
-            if (!navigator.bluetooth) {
-                alert("Web Bluetooth not available. Requires Chrome/Edge.");
-                return;
-            }
-            try {
-                const device = await navigator.bluetooth.requestDevice({
-                    filters: [{ name: 'ESP32_Robot' }],
-                    optionalServices: ['4fafc201-1fb5-459e-8fcc-c5c9c331914b']
-                });
-                const server  = await device.gatt.connect();
-                const service = await server.getPrimaryService('4fafc201-1fb5-459e-8fcc-c5c9c331914b');
-                bleCharacteristic = await service.getCharacteristic('beb5483e-36e1-4688-b7f5-ea07361b26a8');
+    try { fetch(`http://${ESP32_IP()}/mode/ble`, { mode: 'no-cors' }).catch(() => {}); }
+    catch(e) {}
 
-                statusText.innerText = 'BLE Connected';
-                statusText.style.color = '#60a5fa';
-                if (websocket) websocket.close();
-            } catch (err) {
-                console.error('BLE failed', err);
-                statusText.innerText = 'BLE Connection Failed';
-                statusText.style.color = 'red';
-            }
-        } else {
-            // Connect to WiFi
-            const ip = ipInput.value.trim();
-            localStorage.setItem('esp32ip', ip);
-            connectWebSocket(ip);
-        }
-    });
-
-    // --- 3. THE TOGGLE LOGIC (Only accessible when on HTTP) ---
-    modeToggle.addEventListener('change', (e) => {
-        if (e.target.checked) {
-            useBLE = true;
-            ipInput.style.display = 'none';
-            connectBtn.innerText = "Connect Bluetooth";
-            if (websocket) websocket.close();
-            statusText.innerText = 'BLE Ready';
-            statusText.style.color = '#60a5fa';
-        } else {
-            useBLE = false;
-            ipInput.style.display = 'inline-block';
-            connectBtn.innerText = "Connect";
-            connectWebSocket(ipInput.value.trim());
-        }
-    });
-
-    // --- 4. JOYSTICK SETUP ---
-    // (Keep your existing nipplejs joystick setup code exactly the same down here)
-    const joystick1 = nipplejs.create({
-        zone: document.getElementById('joystick-zone-1'),
-        mode: 'static',
-        color:'black',
-        position: { left: '50%', top: '50%' },
-        size: 200,
-        lockY: true,
-    });
-
-    joystick1.on('move', (evt, data) => {
-        if (!data || !data.vector) return;
-        const force = Math.min(data.force, 1);
-        const x = Math.round(data.vector.x * force * 255);
-        const y = Math.round(data.vector.y * force * 255);
-        sendCommand(1, y);
-        sendCommand(2, y);
-    });
-
-    joystick1.on('end', () => {
-        sendCommand(1, 0);
-        sendCommand(2, 0);
-    });
-
-    const joystick2 = nipplejs.create({
-        zone: document.getElementById('joystick-zone-2'),
-        mode: 'static',
-        color:'black',
-        position: { left: '50%', top: '50%' },
-        size: 200,
-        lockX: true,
-    });
-
-    joystick2.on('move', (evt, data) => {
-        if (!data || !data.vector) return;
-        const force = Math.min(data.force, 1);
-        const x = Math.round(data.vector.x * force * 255);
-        const y = Math.round(data.vector.y * force * 255);
-        sendCommand(3, x);
-        sendCommand(4, y);
-    });
-
-    joystick2.on('end', () => {
-        sendCommand(3, 0);
-        sendCommand(4, 0);
-    });
+    try {
+        status.innerText = 'Connecting...';
+        status.style.color = '#f59e0b';
+        const device  = await navigator.bluetooth.requestDevice({
+            filters: [{ name: 'ESP32_Robot' }],
+            optionalServices: [BLE_SERVICE]
+        });
+        const server  = await device.gatt.connect();
+        const service = await server.getPrimaryService(BLE_SERVICE);
+        bleCharacteristic = await service.getCharacteristic(BLE_CHAR);
+        useBLE = true;
+        status.innerText = 'BLE Connected';
+        status.style.color = '#60a5fa';
+        return true;
+    } catch(err) {
+        console.error('BLE failed', err);
+        status.innerText = 'BLE failed';
+        status.style.color = 'red';
+        return false;
+    }
 }
+
+// ── Switch ESP32 to WiFi via BLE command ──────────────────────
+async function switchESP32toWiFi() {
+    if (!bleCharacteristic) return;
+    try {
+        const payload = JSON.stringify({ t: "mode", v: "wifi" });
+        await bleCharacteristic.writeValueWithoutResponse(new TextEncoder().encode(payload));
+        await new Promise(r => setTimeout(r, 1000));
+    } catch(e) { console.error('Mode switch error', e); }
+}
+
+// ── Main ──────────────────────────────────────────────────────
+window.onload = () => {
+    // Check if we are running on GitHub (HTTPS) or ESP32 Local (HTTP)
+    const isGitHub = window.location.protocol === 'https:';
+
+    document.getElementById('esp32-ip').value = localStorage.getItem('esp32ip') || '192.168.1.106';
+
+    // BLE Connect
+    document.getElementById('ble-connect-btn').addEventListener('click', connectBLE);
+
+    // Switch to WiFi logic
+    document.getElementById('goto-wifi-btn').addEventListener('click', async () => {
+        const ip = ESP32_IP();
+        localStorage.setItem('esp32ip', ip);
+
+        await switchESP32toWiFi(); // Tell ESP32 to change network modes
+
+        // Redirect browser to the ESP32's local web server
+        window.location.href = `http://${ip}/`;
+    });
+
+    // WiFi Connect
+    document.getElementById('wifi-connect-btn').addEventListener('click', () => {
+        const ip = ESP32_IP();
+        localStorage.setItem('esp32ip', ip);
+        connectWebSocket(ip);
+    });
+
+    // Switch to BLE logic
+    document.getElementById('goto-ble-btn').addEventListener('click', async () => {
+        // Tell ESP32 to switch to BLE mode
+        try { fetch(`/mode/ble`).catch(() => {}); } catch(e) {}
+
+        // Redirect browser back to GitHub Pages
+        window.location.href = GITHUB_URL;
+    });
+
+    createJoysticks(1, 2, 3, 4);
+
+    // Environment-specific setup
+    if (isGitHub) {
+        // Running on GitHub Pages -> Show BLE page
+        showPage('ble');
+    } else {
+        // Running on ESP32 LittleFS -> Show WiFi page and auto-connect
+        showPage('wifi');
+        const localIp = window.location.hostname;
+        document.getElementById('esp32-ip').value = localIp;
+        connectWebSocket(localIp);
+    }
+};

@@ -181,3 +181,40 @@ button {
 .toggle input:checked + .toggle-slider:before {
     transform: translateX(26px);
 }
+
+/*.page {*/
+/*    display: flex;*/
+/*    flex-direction: column;*/
+/*    height: 100vh;*/
+/*}*/
+
+.hidden {
+    display: none !important;
+}
+
+.page-title {
+    font-size: 14px;
+    font-weight: bold;
+    color: #aaa;
+    letter-spacing: 1px;
+}
+
+.conn-btn-ble  {
+    background: #1d3a6e;
+    border-color: #3b82f6;
+    color: #93c5fd;
+}
+
+.conn-btn-ble:hover  {
+    background: #2a4f9a;
+}
+
+.conn-btn-wifi {
+    background: #14532d;
+    border-color: #22c55e;
+    color: #86efac;
+}
+
+.conn-btn-wifi:hover {
+    background: #166534;
+}

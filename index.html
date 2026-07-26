@@ -6,30 +6,36 @@
     <link rel="stylesheet" type="text/css" href="style.css">
     <script src="libs/nipplejs.min.js"></script>
     <script type="module" src="index.js"></script>
-    <script type="module" src="components/Range.js"></script>
 </head>
 <body>
-<div class="topbar">
-    <input id="esp32-ip" class="ip-input" type="text" placeholder="192.168.1.106">
-    <!-- Changed ID to main-connect-btn -->
-    <button id="main-connect-btn" class="conn-btn">Connect</button>
 
-    <!-- Added id="toggle-wrap" to this div -->
-    <div id="toggle-wrap" class="toggle-wrap">
-        <span class="toggle-label-wifi">WiFi</span>
-        <label class="toggle">
-            <input type="checkbox" id="mode-toggle">
-            <span class="toggle-slider"></span>
-        </label>
-        <span class="toggle-label-ble">BLE</span>
+<!-- BLE MENU BAR -->
+<div id="page-ble" class="page hidden">
+    <div class="topbar">
+        <span class="page-title">BLE MODE</span>
+        <button id="ble-connect-btn" class="conn-btn conn-btn-ble">Connect via BLE</button>
+        <button id="goto-wifi-btn" class="conn-btn conn-btn-wifi">Switch to WiFi</button>
+        <span id="ble-status" class="status-text">Not connected</span>
     </div>
-    <span id="status-text" class="status-text">Not connected</span>
 </div>
+
+<!-- WIFI MENU BAR -->
+<div id="page-wifi" class="page">
+    <div class="topbar">
+        <input id="esp32-ip" class="ip-input" type="text" placeholder="192.168.1.106">
+        <button id="wifi-connect-btn" class="conn-btn conn-btn-wifi">Connect WiFi</button>
+        <button id="goto-ble-btn" class="conn-btn conn-btn-ble">Switch to BLE</button>
+        <span id="wifi-status" class="status-text">Not connected</span>
+    </div>
+</div>
+
+<!-- SINGLE GLOBAL JOYSTICK CONTAINER -->
 <div class="content">
     <div class="card-grid">
         <div class="joystick-card" id="joystick-zone-1"></div>
         <div class="joystick-card" id="joystick-zone-2"></div>
     </div>
 </div>
+
 </body>
 </html>
