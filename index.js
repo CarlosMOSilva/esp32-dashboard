@@ -13,7 +13,7 @@ const BLE_SERVICE    = '4fafc201-1fb5-459e-8fcc-c5c9c331914b';
 const BLE_CHAR       = 'beb5483e-36e1-4688-b7f5-ea07361b26a8';
 const ESP32_IP       = () => document.getElementById('esp32-ip')?.value.trim()
     || localStorage.getItem('esp32ip')
-    || '192.168.1.106';
+    || '192.168.1.112';
 
 // ── Page switching ────────────────────────────────────────────
 function showPage(name) {
@@ -171,7 +171,7 @@ window.onload = () => {
         window.location.href = GITHUB_URL;
     });
 
-    createJoysticks(1, 2, 3, 4);
+    createJoysticks(1, 2, 5, 6);
 
     // Environment-specific setup
     if (isGitHub) {
