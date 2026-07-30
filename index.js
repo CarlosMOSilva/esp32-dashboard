@@ -139,7 +139,7 @@ window.onload = () => {
     // Check if we are running on GitHub (HTTPS) or ESP32 Local (HTTP)
     const isGitHub = window.location.protocol === 'https:';
 
-    document.getElementById('esp32-ip').value = localStorage.getItem('esp32ip') || '192.168.1.106';
+    document.getElementById('esp32-ip').value = localStorage.getItem('esp32ip') || '192.168.1.112';
 
     // BLE Connect
     document.getElementById('ble-connect-btn').addEventListener('click', connectBLE);
